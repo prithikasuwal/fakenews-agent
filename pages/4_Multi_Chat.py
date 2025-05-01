@@ -10,6 +10,7 @@ import streamlit as st
 from agent_profiles import PROFILES, format_profile
 from agents import Agent, Runner
 import asyncio
+import csv
 
 # Set the title of the page
 st.title("🤝 Multi-Agent Chat")
@@ -41,7 +42,10 @@ for agent_name in selected_agents:
             unsafe_allow_html=True,
         )
         st.sidebar.markdown("**Behavior:**")
-        st.sidebar.code(profile["behavior_instruction"], language="markdown")
+        if "behavior_instruction" in profile:
+            st.sidebar.code(profile["behavior_instruction"], language="markdown")
+        else:
+            st.sidebar.markdown("_No specific behavior instructions for this persona._")
 
 # Display instructions for the user
 st.write("Select one or more agents in the sidebar. Type a message and see how each persona responds!")
@@ -63,17 +67,54 @@ if submitted and user_input.strip() and api_key and selected_agents:
             if profile:
                 # Create an agent instance and run the conversation
                 agent = Agent(name=profile["name"], instructions=format_profile(profile))
-                result = await Runner.run(agent, user_input)
+                result = await Runner.run(agent, user_input + "\n(As this character, reply on the first line ONLY with a single number from 1 to 5 (where 1 means you are least likely and 5 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, biases, and background). On the next line(s), explain your reasoning or thoughts in character. Do NOT break character.)")
                 results.append((profile, result.final_output))
         return results
 
     # Run the simulation and display the results
     responses = asyncio.run(simulate_all())
     st.markdown("---")
+
+    import csv
+    import os
+    csv_path = os.path.join(os.path.dirname(__file__), '../multi_chat_log.csv')
+    # Prepare headers: Question, <Agent1> Rating, <Agent2> Rating, ...
+    header = ['Question']
+    for profile, _ in responses:
+        header.append(f"{profile['name']} Rating")
+    # Prepare row: question, <Agent1> rating, <Agent2> rating, ...
+    row = [user_input]
+    for profile, output in responses:
+        lines = [l for l in output.strip().split('\n') if l.strip()]
+        rating = lines[0] if lines else ''
+        row.append(rating)
+    # Always write header as first row, then append new row
+    file_exists = os.path.isfile(csv_path)
+    if not file_exists:
+        with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(header)
+            writer.writerow(row)
+    else:
+        # Check if header matches, if not, rewrite file with new header and keep only current row
+        with open(csv_path, 'r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            existing_header = next(reader, None)
+            existing_rows = list(reader)
+        if existing_header != header:
+            with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(header)
+                writer.writerow(row)
+        else:
+            with open(csv_path, 'a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(row)
+
     for profile, output in responses:
         st.markdown(f"### {profile['name']}")
         st.markdown("<details><summary>Persona Details</summary>" +
                     "<br>".join([f"<b>{k.replace('_', ' ').capitalize()}</b>: {v}" for k, v in profile.items() if k not in ("name", "behavior_instruction")]) +
                     "</details>", unsafe_allow_html=True)
-        st.write(output)
+        st.markdown(f"**Rating:** {output}")
         st.markdown("---")
