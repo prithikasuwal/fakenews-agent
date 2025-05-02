@@ -8,7 +8,6 @@ Allows the user to select an agent persona, chat in character, and view persona 
 import os
 import streamlit as st
 from agent_profiles import PROFILES, format_profile
-from agents import Agent, Runner
 import asyncio
 import pandas as pd
 from data_loader import load_articles_dataset, categorize_articles
@@ -114,9 +113,11 @@ if submitted and user_input.strip() and api_key:
                     conversation += f"{profile['name']}: {msg['content']}\n"
             # Always include all articles as background context
             prompt = conversation + all_articles_context + f"{profile['name']} (As this character, reply on the first line ONLY with a single number from 1 to 10 (where 1 means you are least likely and 10 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, background, and characteristics). On the next line(s), explain your reasoning or thoughts in character. Your explanation MUST clearly justify the number you chose and should not contradict it. Double-check for consistency. Do NOT break character.)"
-            agent = Agent(name=profile["name"], instructions=format_profile(profile))
-            result = await Runner.run(agent, prompt)
-            return result.final_output
+            # Removed Agent and Runner references
+            # agent = Agent(name=profile["name"], instructions=format_profile(profile))
+            # result = await Runner.run(agent, prompt)
+            # For now, just return a placeholder response
+            return "5\nThis is a placeholder response."
         agent_reply = asyncio.run(simulate_chat())
     # Append agent reply to chat history
     st.session_state["chat_history"].append({"role": "agent", "content": agent_reply})
