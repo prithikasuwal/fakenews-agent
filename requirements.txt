@@ -4,3 +4,4 @@ plotly
 fpdf
 numpy
 scikit-learn
+matplotlib
