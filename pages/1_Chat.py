@@ -88,8 +88,8 @@ for idx, msg in enumerate(st.session_state["chat_history"]):
         if idx + 1 < len(st.session_state["chat_history"]) and st.session_state["chat_history"][idx + 1]["role"] == "agent":
             st.markdown("---")
     else:
-        # Display agent reply as plain scale 1 to 5 answer
-        st.markdown(f"**{profile['name']} (Scale 1–5, 1 = least likely, 5 = most likely):**\n{msg['content']}")
+        # Display agent reply as plain scale 1 to 10 answer
+        st.markdown(f"**{profile['name']} (Scale 1–10, 1 = least likely, 10 = most likely):**\n{msg['content']}")
 
 # User input for next message (in a form to prevent looping)
 with st.form(key="chat_form", clear_on_submit=True):
@@ -113,7 +113,7 @@ if submitted and user_input.strip() and api_key:
                 else:
                     conversation += f"{profile['name']}: {msg['content']}\n"
             # Always include all articles as background context
-            prompt = conversation + all_articles_context + f"{profile['name']} (As this character, reply on the first line ONLY with a single number from 1 to 5 (where 1 means you are least likely and 5 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, biases, and background). On the next line(s), explain your reasoning or thoughts in character. Your explanation MUST clearly justify the number you chose and should not contradict it. Double-check for consistency. Do NOT break character.)"
+            prompt = conversation + all_articles_context + f"{profile['name']} (As this character, reply on the first line ONLY with a single number from 1 to 10 (where 1 means you are least likely and 10 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, background, and characteristics). On the next line(s), explain your reasoning or thoughts in character. Your explanation MUST clearly justify the number you chose and should not contradict it. Double-check for consistency. Do NOT break character.)"
             agent = Agent(name=profile["name"], instructions=format_profile(profile))
             result = await Runner.run(agent, prompt)
             return result.final_output

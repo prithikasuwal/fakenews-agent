@@ -67,7 +67,7 @@ if submitted and user_input.strip() and api_key and selected_agents:
             if profile:
                 # Create an agent instance and run the conversation
                 agent = Agent(name=profile["name"], instructions=format_profile(profile))
-                result = await Runner.run(agent, user_input + "\n(As this character, reply on the first line ONLY with a single number from 1 to 5 (where 1 means you are least likely and 5 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, biases, and background). On the next line(s), explain your reasoning or thoughts in character. Do NOT break character.)")
+                result = await Runner.run(agent, user_input + "\n(As this character, reply on the first line ONLY with a single number from 1 to 10 (where 1 means you are least likely and 10 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, background, and characteristics). On the next line(s), explain your reasoning or thoughts in character. Do NOT break character.)")
                 results.append((profile, result.final_output))
         return results
 
@@ -79,14 +79,25 @@ if submitted and user_input.strip() and api_key and selected_agents:
     import os
     csv_path = os.path.join(os.path.dirname(__file__), '../multi_chat_log.csv')
     # Prepare headers: Question, <Agent1> Rating, <Agent2> Rating, ...
-    header = ['Question']
+    header = ["Question"]
     for profile, _ in responses:
-        header.append(f"{profile['name']} Rating")
+        header.append(f"{profile['name']} Rating (1–10)")
     # Prepare row: question, <Agent1> rating, <Agent2> rating, ...
     row = [user_input]
+    validation_msgs = []
     for profile, output in responses:
         lines = [l for l in output.strip().split('\n') if l.strip()]
         rating = lines[0] if lines else ''
+        # Validate rating is an integer between 1 and 10
+        try:
+            rating_int = int(rating)
+            if not (1 <= rating_int <= 10):
+                validation_msgs.append(f"{profile['name']}: Invalid rating '{rating}' (should be 1–10)")
+                rating = f"❌ {rating}"
+        except Exception:
+            if rating != '':
+                validation_msgs.append(f"{profile['name']}: Invalid rating '{rating}' (not an integer)")
+                rating = f"❌ {rating}"
         row.append(rating)
     # Always write header as first row, then append new row
     file_exists = os.path.isfile(csv_path)
@@ -116,5 +127,22 @@ if submitted and user_input.strip() and api_key and selected_agents:
         st.markdown("<details><summary>Persona Details</summary>" +
                     "<br>".join([f"<b>{k.replace('_', ' ').capitalize()}</b>: {v}" for k, v in profile.items() if k not in ("name", "behavior_instruction")]) +
                     "</details>", unsafe_allow_html=True)
-        st.markdown(f"**Rating:** {output}")
+        lines = [l for l in output.strip().split('\n') if l.strip()]
+        rating = lines[0] if lines else ''
+        try:
+            rating_int = int(rating)
+            if not (1 <= rating_int <= 10):
+                st.markdown(f"**Rating (1–10):** ❌ {rating} _(Invalid: should be 1–10)_")
+            else:
+                st.markdown(f"**Rating (1–10):** {rating}")
+        except Exception:
+            if rating != '':
+                st.markdown(f"**Rating (1–10):** ❌ {rating} _(Invalid: not an integer)_")
+            else:
+                st.markdown(f"**Rating (1–10):** (No rating provided)")
         st.markdown("---")
+    if validation_msgs:
+        st.warning("\n".join(validation_msgs))
+
+# --- Radar Charts Section ---
+# (Removed visualization from Multi-Chat page; now only available on Visualization page)

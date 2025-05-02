@@ -1,15 +1,18 @@
 """
 2_Agent_Profile.py
 ------------------
-Displays the currently selected agent's persona details and behavior instructions.
+Displays the currently selected agent's persona details and personality traits.
 """
 import streamlit as st
 from agent_profiles import PROFILES
 
 # Set the title of the page
 st.title("🧑‍💼 Agent Profile")
-# Select the first agent profile
-profile = PROFILES[0]
+
+# Add a selectbox to choose an agent by name
+agent_names = [p['name'] for p in PROFILES]
+selected_name = st.selectbox("Select agent", agent_names)
+profile = next(p for p in PROFILES if p['name'] == selected_name)
 
 # Display the current persona details
 st.header("Current Persona")
@@ -19,10 +22,14 @@ for k, v in profile.items():
         # Format the key-value pair as a markdown string
         st.markdown(f"**{k.replace('_', ' ').capitalize()}:** {v}")
 
-# Display the behavior instructions
-st.subheader("Behavior Instructions")
-# Display the behavior instructions as a code block
-st.code(profile["behavior_instruction"], language="markdown")
+# Display Personality Traits if present
+if 'personality_traits' in profile:
+    st.subheader("Personality Traits")
+    if isinstance(profile['personality_traits'], (list, tuple)):
+        for trait in profile['personality_traits']:
+            st.markdown(f"- {trait}")
+    else:
+        st.markdown(profile['personality_traits'])
 
 # Provide information on how to edit the agent
 st.info("To edit the agent, please modify agent_profiles.py directly. (Live editing UI can be added in the future.)")
