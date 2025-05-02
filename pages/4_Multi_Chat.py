@@ -8,6 +8,7 @@ Allows the user to select multiple agent personas and receive responses from all
 import os
 import streamlit as st
 from agent_profiles import PROFILES, format_profile
+from agents import Agent, Runner
 import asyncio
 import csv
 
@@ -64,10 +65,10 @@ if submitted and user_input.strip() and api_key and selected_agents:
         for agent_name in selected_agents:
             profile = next((p for p in PROFILES if p["name"] == agent_name), None)
             if profile:
-                # Create a placeholder for agent instance and run the conversation
-                agent = None  # Placeholder for Agent instance
-                result = None  # Placeholder for conversation result
-                results.append((profile, result))
+                # Create an agent instance and run the conversation
+                agent = Agent(name=profile["name"], instructions=format_profile(profile))
+                result = await Runner.run(agent, user_input + "\n(As this character, reply on the first line ONLY with a single number from 1 to 10 (where 1 means you are least likely and 10 means you are most likely to agree, comply, or react positively to the question, based on your beliefs, background, and characteristics). On the next line(s), explain your reasoning or thoughts in character. Do NOT break character.)")
+                results.append((profile, result.final_output))
         return results
 
     # Run the simulation and display the results
@@ -85,8 +86,8 @@ if submitted and user_input.strip() and api_key and selected_agents:
     row = [user_input]
     validation_msgs = []
     for profile, output in responses:
-        lines = []  # Placeholder for conversation output
-        rating = ''  # Placeholder for rating
+        lines = [l for l in output.strip().split('\n') if l.strip()]
+        rating = lines[0] if lines else ''
         # Validate rating is an integer between 1 and 10
         try:
             rating_int = int(rating)
@@ -126,8 +127,8 @@ if submitted and user_input.strip() and api_key and selected_agents:
         st.markdown("<details><summary>Persona Details</summary>" +
                     "<br>".join([f"<b>{k.replace('_', ' ').capitalize()}</b>: {v}" for k, v in profile.items() if k not in ("name", "behavior_instruction")]) +
                     "</details>", unsafe_allow_html=True)
-        lines = []  # Placeholder for conversation output
-        rating = ''  # Placeholder for rating
+        lines = [l for l in output.strip().split('\n') if l.strip()]
+        rating = lines[0] if lines else ''
         try:
             rating_int = int(rating)
             if not (1 <= rating_int <= 10):
