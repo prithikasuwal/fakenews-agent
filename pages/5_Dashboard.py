@@ -206,6 +206,7 @@ if demographic != 'None':
 else:
     filtered_professions = professions
 
+# --- Average Ratings by Question Type ---
 st.header('Average Ratings by Question Type')
 ratings_data = []
 for q in ['Real', 'Fake', 'Fact', 'Opinion']:
